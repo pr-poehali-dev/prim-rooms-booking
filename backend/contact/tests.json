@@ -1,0 +1,28 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Missing required fields",
+      "method": "POST",
+      "path": "/",
+      "body": {"message": "test"},
+      "expectedStatus": 422,
+      "expectedBody": {"error": "name and phone required"},
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Valid contact request",
+      "method": "POST",
+      "path": "/",
+      "body": {"name": "Иван", "phone": "+79001234567", "guests": "2 гостя"},
+      "expectedStatus": 200,
+      "expectedBody": {"ok": true},
+      "bodyMatcher": "partial"
+    }
+  ]
+}

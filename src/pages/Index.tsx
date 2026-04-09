@@ -87,11 +87,109 @@ const labelStyle: React.CSSProperties = {
   color: "var(--color-text-muted)",
 };
 
+const CONTACT_URL = "https://functions.poehali.dev/b9d80f4a-1c45-4638-82df-bf9505eac61a";
+
+function ContactModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [form, setForm] = useState({ name: "", phone: "", message: "" });
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (open) { setSent(false); setError(""); setForm({ name: "", phone: "", message: "" }); }
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleSend = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true); setError("");
+    try {
+      const res = await fetch(CONTACT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) { setSent(true); }
+      else { setError("Что-то пошло не так. Попробуйте ещё раз."); }
+    } catch {
+      setError("Ошибка сети. Проверьте соединение.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inp: React.CSSProperties = {
+    width: "100%", minHeight: 52, padding: "0 1rem",
+    borderRadius: "0.875rem", border: "1px solid var(--color-border)",
+    background: "var(--color-bg)", color: "var(--color-text)",
+    fontFamily: "inherit", fontSize: "1rem", outline: "none",
+  };
+  const lbl: React.CSSProperties = {
+    display: "block", marginBottom: "0.4rem", fontSize: "0.7rem",
+    letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--color-text-muted)",
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      style={{ position: "fixed", inset: 0, zIndex: 200, background: "rgba(0,0,0,0.45)", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem", backdropFilter: "blur(4px)" }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "1.25rem", boxShadow: "var(--shadow-md)", padding: "clamp(1.5rem, 4vw, 2.5rem)", width: "100%", maxWidth: 480, position: "relative" }}
+      >
+        <button onClick={onClose} style={{ position: "absolute", top: "1rem", right: "1rem", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", padding: "0.25rem" }}>
+          <Icon name="X" size={20} />
+        </button>
+
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "2rem 0" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: "1rem" }}>✓</div>
+            <h2 style={{ fontFamily: "'Boska', Georgia, serif", fontSize: "1.75rem", marginBottom: "0.75rem", letterSpacing: "-0.02em" }}>Заявка отправлена!</h2>
+            <p style={{ color: "var(--color-text-muted)", lineHeight: 1.6 }}>Мы свяжемся с вами в ближайшее время и поможем подобрать подходящие апартаменты.</p>
+            <button onClick={onClose} style={{ marginTop: "1.5rem", display: "inline-flex", alignItems: "center", minHeight: 48, padding: "0 1.5rem", borderRadius: 999, background: "var(--color-primary)", color: "var(--color-text-inverse)", fontSize: "0.9rem", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit" }}>
+              Закрыть
+            </button>
+          </div>
+        ) : (
+          <>
+            <h2 style={{ fontFamily: "'Boska', Georgia, serif", fontSize: "clamp(1.5rem, 3vw, 2rem)", marginBottom: "0.5rem", letterSpacing: "-0.02em" }}>Связаться с нами</h2>
+            <p style={{ color: "var(--color-text-muted)", fontSize: "0.9rem", lineHeight: 1.6, marginBottom: "1.5rem" }}>Оставьте контакт — мы ответим и поможем выбрать апартаменты под вашу поездку.</p>
+            <form onSubmit={handleSend} style={{ display: "grid", gap: "1rem" }}>
+              <div>
+                <label style={lbl}>Ваше имя *</label>
+                <input style={inp} placeholder="Иван Иванов" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
+              </div>
+              <div>
+                <label style={lbl}>Телефон *</label>
+                <input style={inp} type="tel" placeholder="+7 900 000-00-00" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} required />
+              </div>
+              <div>
+                <label style={lbl}>Сообщение</label>
+                <textarea style={{ ...inp, minHeight: 100, padding: "0.75rem 1rem", resize: "vertical" as const }} placeholder="Даты поездки, количество гостей, вопросы..." value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))} />
+              </div>
+              {error && <p style={{ color: "#c0392b", fontSize: "0.875rem" }}>{error}</p>}
+              <button type="submit" disabled={sending} style={{ minHeight: 52, borderRadius: 999, background: "var(--color-primary)", color: "var(--color-text-inverse)", fontSize: "0.9rem", fontWeight: 600, border: "none", cursor: "pointer", fontFamily: "inherit", opacity: sending ? 0.7 : 1 }}>
+                {sending ? "Отправляем…" : "Отправить заявку"}
+              </button>
+            </form>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Index() {
   const [theme, setTheme] = useState<"light" | "dark">(() =>
     typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"
   );
   const [submitting, setSubmitting] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
@@ -108,8 +206,8 @@ export default function Index() {
     setSubmitting(true);
     setTimeout(() => {
       setSubmitting(false);
-      alert("Здесь можно подключить модуль бронирования Bnovo, RealtyCalendar или форму заявки.");
-    }, 700);
+      setContactOpen(true);
+    }, 400);
   };
 
   const btnPrimary: React.CSSProperties = {
@@ -122,6 +220,8 @@ export default function Index() {
 
   return (
     <div style={{ minHeight: "100vh", fontFamily: "'General Sans', Inter, sans-serif" }}>
+
+      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
 
       {/* HEADER */}
       <header style={{
@@ -392,7 +492,7 @@ export default function Index() {
                 </div>
                 <div className="cta-actions-r" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", justifyContent: "flex-end" }}>
                   <button onClick={() => scrollTo("booking")} style={{ ...btnPrimary, minHeight: 52 }}>Выбрать апартаменты</button>
-                  <a href="tel:+70000000000" className="btn-ghost" style={{ minHeight: 52, padding: "0 1.5rem", textDecoration: "none", display: "inline-flex", alignItems: "center" }}>Связаться с менеджером</a>
+                  <button onClick={() => setContactOpen(true)} className="btn-ghost" style={{ minHeight: 52, padding: "0 1.5rem" }}>Связаться с менеджером</button>
                 </div>
               </div>
             </FadeUp>
@@ -414,6 +514,7 @@ export default function Index() {
           <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontSize: "0.875rem", color: "var(--color-text-muted)" }}>
             <button onClick={() => scrollTo("booking")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", fontFamily: "inherit", fontSize: "0.875rem" }}>Бронирование</button>
             <button onClick={() => scrollTo("advantages")} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", fontFamily: "inherit", fontSize: "0.875rem" }}>Преимущества</button>
+            <button onClick={() => setContactOpen(true)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-muted)", fontFamily: "inherit", fontSize: "0.875rem" }}>Написать нам</button>
             <a href="tel:+70000000000" style={{ color: "var(--color-text-muted)" }}>Телефон</a>
             <a href="mailto:hello@primrooms.ru" style={{ color: "var(--color-text-muted)" }}>E-mail</a>
           </div>
